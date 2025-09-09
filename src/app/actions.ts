@@ -59,7 +59,11 @@ export async function generateRecipeImageAction(recipeName: string): Promise<{su
 
   try {
     const result = await generateRecipeImage({ recipeName });
-    return { success: true, data: result };
+    // The result from the flow is the output object directly
+    if (result.imageUrl) {
+        return { success: true, data: result };
+    }
+    throw new Error('Image URL was not returned from the generation service.');
   } catch (error) {
     console.error(error);
     return {

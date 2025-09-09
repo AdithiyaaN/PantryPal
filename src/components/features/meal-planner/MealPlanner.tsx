@@ -118,7 +118,15 @@ export function MealPlanner() {
 
     setShoppingList(prevList => {
       const combinedList = [...prevList, ...ingredientsFromSelectedRecipes];
-      const uniqueList = Array.from(new Set(combinedList.map(item => item.toLowerCase().trim()).filter(Boolean)));
+      // Use a Map to keep track of unique items, preserving original casing for the first-seen item.
+      const uniqueMap = new Map();
+      combinedList.forEach(item => {
+        const lowerCaseItem = item.toLowerCase().trim();
+        if (lowerCaseItem && !uniqueMap.has(lowerCaseItem)) {
+          uniqueMap.set(lowerCaseItem, item.trim());
+        }
+      });
+      const uniqueList = Array.from(uniqueMap.values());
       return uniqueList.sort((a, b) => a.localeCompare(b));
     });
 

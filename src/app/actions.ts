@@ -3,6 +3,7 @@
 import { extractIngredientsFromUrl } from "@/ai/flows/extract-ingredients-from-url";
 import { categorizeIngredients, CategorizeIngredientsOutput } from "@/ai/flows/categorize-ingredients";
 import { getNutritionalInfo, GetNutritionalInfoOutput } from "@/ai/flows/get-nutritional-info";
+import { recommendDishes, RecommendDishesOutput } from "@/ai/flows/recommend-dishes";
 import { type Ingredient } from "@/types";
 
 
@@ -67,6 +68,28 @@ export async function getNutritionalInfoAction(ingredients: Ingredient[], servin
     return {
       success: false,
       error: "Failed to get nutritional information. Please try again.",
+    };
+  }
+}
+
+export async function getRecommendedDishesAction(formData: FormData): Promise<{success: boolean, data?: RecommendDishesOutput, error?: string}> {
+  const ingredientsStr = formData.get("ingredients") as string;
+  const prompt = formData.get("prompt") as string;
+  
+  if (!ingredientsStr) {
+    return { success: false, error: "Please enter at least one ingredient." };
+  }
+
+  const ingredients = ingredientsStr.split(',').map(i => i.trim()).filter(i => i);
+
+  try {
+    const result = await recommendDishes({ ingredients, prompt });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: "Failed to get recipe recommendations. Please try again.",
     };
   }
 }

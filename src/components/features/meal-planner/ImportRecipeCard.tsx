@@ -49,8 +49,8 @@ export function ImportRecipeCard({ onRecipeImported }: ImportRecipeCardProps) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Magic Import</CardTitle>
-        <CardDescription>Enter a recipe name and URL to automatically extract the ingredients.</CardDescription>
+        <CardTitle>Import a Recipe</CardTitle>
+        <CardDescription>Enter a URL to magically import a recipe.</CardDescription>
       </CardHeader>
       <CardContent>
         <form ref={formRef} action={handleImport} className="space-y-4">

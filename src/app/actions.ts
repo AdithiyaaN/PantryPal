@@ -2,6 +2,9 @@
 
 import { extractIngredientsFromUrl } from "@/ai/flows/extract-ingredients-from-url";
 import { categorizeIngredients, CategorizeIngredientsOutput } from "@/ai/flows/categorize-ingredients";
+import { getNutritionalInfo, GetNutritionalInfoOutput } from "@/ai/flows/get-nutritional-info";
+import { type Ingredient } from "@/types";
+
 
 export async function getIngredientsFromUrlAction(formData: FormData) {
   const url = formData.get("url") as string;
@@ -21,7 +24,7 @@ export async function getIngredientsFromUrlAction(formData: FormData) {
   try {
     const result = await extractIngredientsFromUrl({ url });
     if (result.ingredients && result.ingredients.length > 0) {
-      return { success: true, data: { name, ingredients: result.ingredients } };
+      return { success: true, data: { name, servings: result.servings ?? 1, ingredients: result.ingredients } };
     }
     return { success: false, error: "Could not find any ingredients at that URL." };
   } catch (error) {
@@ -47,6 +50,23 @@ export async function getCategorizedShoppingListAction(ingredients: string[]): P
     return {
       success: false,
       error: "Failed to categorize shopping list. Please try again.",
+    };
+  }
+}
+
+export async function getNutritionalInfoAction(ingredients: Ingredient[], servings: number): Promise<{success: boolean, data?: GetNutritionalInfoOutput, error?: string}> {
+  if (!ingredients || ingredients.length === 0) {
+    return { success: true, data: { totalNutrition: [], nutritionPerServing: [] } };
+  }
+
+  try {
+    const result = await getNutritionalInfo({ ingredients, servings });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: "Failed to get nutritional information. Please try again.",
     };
   }
 }

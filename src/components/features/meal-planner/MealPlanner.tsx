@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
-import { type Recipe } from '@/types';
+import { type Recipe, type Ingredient } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
 import { RecipeList } from './RecipeList';
 import { ShoppingListCard } from './ShoppingListCard';
@@ -53,16 +53,24 @@ export function MealPlanner() {
     }
   }, [shoppingList, setCategorizedList, handleCategorizeList]);
 
-  const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
-    const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
+  const handleAddOrUpdateRecipe = (name: string, servings: number, ingredientsStr: string) => {
+    const ingredients: Ingredient[] = ingredientsStr.split('\n').map(line => {
+        const parts = line.trim().split(' ');
+        const quantity = parseFloat(parts[0]) || 1;
+        const unit = !isNaN(parseFloat(parts[0])) ? parts[1] || '' : '';
+        const name = !isNaN(parseFloat(parts[0])) ? parts.slice(2).join(' ') : line.trim();
+        return { name, quantity, unit };
+      }).filter(ing => ing.name !== '');
+
     if (editingRecipe) {
-      const updatedRecipe = { ...editingRecipe, name, ingredients };
+      const updatedRecipe = { ...editingRecipe, name, servings, ingredients };
       setRecipes(prev => prev.map(r => (r.id === editingRecipe.id ? updatedRecipe : r)));
       toast({ title: "Recipe updated!" });
     } else {
       const newRecipe: Recipe = {
         id: generateUniqueId(),
         name,
+        servings,
         ingredients,
       };
       setRecipes(prev => [...prev, newRecipe]);
@@ -71,10 +79,11 @@ export function MealPlanner() {
     setEditingRecipe(null);
   };
   
-  const handleImportedRecipe = (name: string, ingredients: string[]) => {
+  const handleImportedRecipe = (name: string, servings: number, ingredients: Ingredient[]) => {
     const newRecipe: Recipe = {
       id: generateUniqueId(),
       name,
+      servings,
       ingredients,
     };
     setRecipes(prev => [...prev, newRecipe]);
@@ -105,7 +114,7 @@ export function MealPlanner() {
   const handleGenerateShoppingList = () => {
     const ingredientsToAdd = recipes
       .filter(r => selectedRecipeIds.has(r.id))
-      .flatMap(r => r.ingredients);
+      .flatMap(r => r.ingredients.map(ing => `${ing.quantity} ${ing.unit} ${ing.name}`.trim()));
     
     setShoppingList(prevList => {
       const combined = [...prevList, ...ingredientsToAdd];

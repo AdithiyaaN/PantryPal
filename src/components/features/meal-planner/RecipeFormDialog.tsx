@@ -13,13 +13,14 @@ import { type Recipe } from '@/types';
 
 const formSchema = z.object({
   name: z.string().min(2, "Recipe name must be at least 2 characters."),
+  servings: z.coerce.number().min(1, "Servings must be at least 1."),
   ingredients: z.string().min(3, "Please add at least one ingredient. Enter one ingredient per line."),
 });
 
 interface RecipeFormDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onSubmit: (name: string, ingredients: string) => void;
+  onSubmit: (name: string, servings: number, ingredients: string) => void;
   recipe: Recipe | null;
 }
 
@@ -28,6 +29,7 @@ export function RecipeFormDialog({ open, onOpenChange, onSubmit, recipe }: Recip
     resolver: zodResolver(formSchema),
     defaultValues: {
       name: "",
+      servings: 1,
       ingredients: "",
     },
   });
@@ -36,15 +38,16 @@ export function RecipeFormDialog({ open, onOpenChange, onSubmit, recipe }: Recip
     if (recipe) {
       form.reset({
         name: recipe.name,
-        ingredients: recipe.ingredients.join('\n'),
+        servings: recipe.servings,
+        ingredients: recipe.ingredients.map(ing => `${ing.quantity} ${ing.unit} ${ing.name}`.trim()).join('\n'),
       });
     } else {
-      form.reset({ name: '', ingredients: '' });
+      form.reset({ name: '', servings: 1, ingredients: '' });
     }
   }, [recipe, open, form]);
 
   const handleSubmit = (values: z.infer<typeof formSchema>) => {
-    onSubmit(values.name, values.ingredients);
+    onSubmit(values.name, values.servings, values.ingredients);
     onOpenChange(false);
   };
 
@@ -72,6 +75,19 @@ export function RecipeFormDialog({ open, onOpenChange, onSubmit, recipe }: Recip
                 </FormItem>
               )}
             />
+             <FormField
+              control={form.control}
+              name="servings"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Servings</FormLabel>
+                  <FormControl>
+                    <Input type="number" placeholder="e.g., 4" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             <FormField
               control={form.control}
               name="ingredients"
@@ -80,7 +96,7 @@ export function RecipeFormDialog({ open, onOpenChange, onSubmit, recipe }: Recip
                   <FormLabel>Ingredients</FormLabel>
                   <FormControl>
                     <Textarea
-                      placeholder="Flour&#10;Eggs&#10;Milk"
+                      placeholder="1 cup Flour&#10;2 large Eggs&#10;1/2 cup Milk"
                       className="h-40 resize-none"
                       {...field}
                     />

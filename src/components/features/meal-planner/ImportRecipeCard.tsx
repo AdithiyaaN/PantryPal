@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { getIngredientsFromUrlAction } from '@/app/actions';
 import { useToast } from '@/hooks/use-toast';
 import { Download } from 'lucide-react';
+import { type Ingredient } from '@/types';
 
 function SubmitButton() {
   const { pending } = useFormStatus();
@@ -20,7 +21,7 @@ function SubmitButton() {
 }
 
 interface ImportRecipeCardProps {
-  onRecipeImported: (name: string, ingredients: string[]) => void;
+  onRecipeImported: (name: string, servings: number, ingredients: Ingredient[]) => void;
 }
 
 export function ImportRecipeCard({ onRecipeImported }: ImportRecipeCardProps) {
@@ -30,7 +31,7 @@ export function ImportRecipeCard({ onRecipeImported }: ImportRecipeCardProps) {
   async function handleImport(formData: FormData) {
     const result = await getIngredientsFromUrlAction(formData);
     if (result.success && result.data) {
-      onRecipeImported(result.data.name, result.data.ingredients);
+      onRecipeImported(result.data.name, result.data.servings, result.data.ingredients);
       toast({
         title: "Success!",
         description: `Recipe "${result.data.name}" imported.`,

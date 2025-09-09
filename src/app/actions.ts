@@ -1,6 +1,7 @@
 "use server";
 
 import { extractIngredientsFromUrl } from "@/ai/flows/extract-ingredients-from-url";
+import { categorizeIngredients, CategorizeIngredientsOutput } from "@/ai/flows/categorize-ingredients";
 
 export async function getIngredientsFromUrlAction(formData: FormData) {
   const url = formData.get("url") as string;
@@ -29,6 +30,23 @@ export async function getIngredientsFromUrlAction(formData: FormData) {
       success: false,
       error:
         "Failed to extract ingredients. The URL might be invalid or the page structure unsupported.",
+    };
+  }
+}
+
+export async function getCategorizedShoppingListAction(ingredients: string[]): Promise<{success: boolean, data?: CategorizeIngredientsOutput, error?: string}> {
+  if (!ingredients || ingredients.length === 0) {
+    return { success: true, data: { categories: [] } };
+  }
+
+  try {
+    const result = await categorizeIngredients({ ingredients });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: "Failed to categorize shopping list. Please try again.",
     };
   }
 }

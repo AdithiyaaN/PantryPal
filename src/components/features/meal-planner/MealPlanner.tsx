@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useId } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -8,19 +8,50 @@ import { RecipeList } from './RecipeList';
 import { ShoppingListCard } from './ShoppingListCard';
 import { RecipeFormDialog } from './RecipeFormDialog';
 import { useToast } from '@/hooks/use-toast';
+import { type CategorizeIngredientsOutput } from '@/ai/flows/categorize-ingredients';
+import { getCategorizedShoppingListAction } from '@/app/actions';
 
 export function MealPlanner() {
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', []);
   const [shoppingList, setShoppingList] = useLocalStorage<string[]>('shoppingList', []);
+  const [categorizedList, setCategorizedList] = useLocalStorage<CategorizeIngredientsOutput | null>('categorizedShoppingList', null);
+  const [isCategorizing, setIsCategorizing] = useState(false);
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<string>>(new Set());
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+  const uuid = useId();
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  useEffect(() => {
+    if (shoppingList.length > 0) {
+      handleCategorizeList(shoppingList);
+    } else {
+      setCategorizedList(null);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [shoppingList]);
+
+  const handleCategorizeList = async (ingredients: string[]) => {
+    setIsCategorizing(true);
+    const result = await getCategorizedShoppingListAction(ingredients);
+    if (result.success && result.data) {
+      setCategorizedList(result.data);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "AI Categorization Failed",
+        description: result.error,
+      });
+      // Fallback to uncategorized list
+      setCategorizedList({ categories: [{ category: 'Uncategorized', items: ingredients }] });
+    }
+    setIsCategorizing(false);
+  };
 
   const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
     const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
@@ -29,7 +60,7 @@ export function MealPlanner() {
       toast({ title: "Recipe updated!" });
     } else {
       const newRecipe: Recipe = {
-        id: crypto.randomUUID(),
+        id: `recipe-${uuid}-${Date.now()}`,
         name,
         ingredients,
       };
@@ -41,7 +72,7 @@ export function MealPlanner() {
   
   const handleImportedRecipe = (name: string, ingredients: string[]) => {
     const newRecipe: Recipe = {
-      id: crypto.randomUUID(),
+      id: `recipe-${uuid}-${Date.now()}`,
       name,
       ingredients,
     };
@@ -87,6 +118,7 @@ export function MealPlanner() {
 
   const handleClearShoppingList = () => {
     setShoppingList([]);
+    setCategorizedList(null);
     toast({ title: "Shopping list cleared." });
   };
 
@@ -115,7 +147,12 @@ export function MealPlanner() {
           />
         </div>
         <div className="lg:col-span-1 space-y-8">
-          <ShoppingListCard list={shoppingList} onClear={handleClearShoppingList} />
+          <ShoppingListCard 
+            list={shoppingList} 
+            categorizedList={categorizedList}
+            isCategorizing={isCategorizing}
+            onClear={handleClearShoppingList} 
+          />
         </div>
       </div>
       <RecipeFormDialog

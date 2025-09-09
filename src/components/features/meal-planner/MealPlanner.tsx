@@ -9,7 +9,7 @@ import { ShoppingListCard } from './ShoppingListCard';
 import { RecipeFormDialog } from './RecipeFormDialog';
 import { useToast } from '@/hooks/use-toast';
 import { type CategorizeIngredientsOutput } from '@/ai/flows/categorize-ingredients';
-import { getCategorizedShoppingListAction, generateRecipeImageAction } from '@/app/actions';
+import { getCategorizedShoppingListAction } from '@/app/actions';
 
 export function MealPlanner() {
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', []);
@@ -27,21 +27,6 @@ export function MealPlanner() {
   useEffect(() => {
     setIsClient(true);
   }, []);
-
-  const handleGenerateImage = useCallback(async (recipeId: string, recipeName: string) => {
-    setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, isGeneratingImage: true } : r));
-    const result = await generateRecipeImageAction(recipeName);
-    if (result.success && result.data) {
-      setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, imageUrl: result.data!.imageUrl, isGeneratingImage: false } : r));
-    } else {
-      setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, isGeneratingImage: false } : r));
-      toast({
-        variant: "destructive",
-        title: "Image Generation Failed",
-        description: result.error,
-      });
-    }
-  }, [setRecipes, toast]);
 
   const handleCategorizeList = useCallback(async (ingredients: string[]) => {
     setIsCategorizing(true);
@@ -74,20 +59,14 @@ export function MealPlanner() {
       const updatedRecipe = { ...editingRecipe, name, ingredients };
       setRecipes(prev => prev.map(r => (r.id === editingRecipe.id ? updatedRecipe : r)));
       toast({ title: "Recipe updated!" });
-      // Optional: Regenerate image if name changed
-      if (editingRecipe.name !== name) {
-        handleGenerateImage(editingRecipe.id, name);
-      }
     } else {
       const newRecipe: Recipe = {
         id: generateUniqueId(),
         name,
         ingredients,
-        isGeneratingImage: true,
       };
       setRecipes(prev => [...prev, newRecipe]);
       toast({ title: "Recipe added!" });
-      handleGenerateImage(newRecipe.id, newRecipe.name);
     }
     setEditingRecipe(null);
   };
@@ -97,10 +76,8 @@ export function MealPlanner() {
       id: generateUniqueId(),
       name,
       ingredients,
-      isGeneratingImage: true,
     };
     setRecipes(prev => [...prev, newRecipe]);
-    handleGenerateImage(newRecipe.id, newRecipe.name);
   };
 
   const handleDeleteRecipe = (id: string) => {

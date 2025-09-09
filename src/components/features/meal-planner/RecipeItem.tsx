@@ -1,10 +1,8 @@
-import Image from 'next/image';
 import { type Recipe } from "@/types";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
 import { Trash2, Pencil } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { Skeleton } from '@/components/ui/skeleton';
 
 interface RecipeItemProps {
   recipe: Recipe;
@@ -29,21 +27,6 @@ export function RecipeItem({ recipe, isSelected, onToggleSelection, onEdit, onDe
                 aria-label={`Select ${recipe.name}`}
               />
             </div>
-            {recipe.isGeneratingImage ? (
-              <Skeleton className="h-16 w-16 rounded-md mr-4" />
-            ) : recipe.imageUrl ? (
-              <Image 
-                src={recipe.imageUrl}
-                alt={recipe.name}
-                width={64}
-                height={64}
-                className="rounded-md mr-4 object-cover h-16 w-16"
-              />
-            ) : (
-               <div className="h-16 w-16 rounded-md mr-4 bg-muted flex items-center justify-center text-muted-foreground">
-                 <Pencil className="h-6 w-6" />
-               </div>
-            )}
             <div className="flex-1">
               <AccordionTrigger className="flex-1 p-0 text-left hover:no-underline justify-between items-start">
                   <div className="flex flex-col">
@@ -62,7 +45,7 @@ export function RecipeItem({ recipe, isSelected, onToggleSelection, onEdit, onDe
             </div>
           </div>
           <AccordionContent>
-            <div className="px-4 pb-4 pl-[88px] -mt-2">
+            <div className="px-4 pb-4 pl-12 -mt-2">
               <ul className="list-disc pl-5 mt-2 space-y-1 text-sm text-muted-foreground">
                 {recipe.ingredients.map((ing, i) => (
                   <li key={i}>{ing}</li>

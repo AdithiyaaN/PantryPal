@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useId } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe, type Ingredient } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -51,7 +51,7 @@ export function MealPlanner() {
     } else {
       setCategorizedList(null);
     }
-  }, [shoppingList, setCategorizedList, handleCategorizeList]);
+  }, [shoppingList, handleCategorizeList]);
 
   const handleAddOrUpdateRecipe = (name: string, servings: number, ingredientsStr: string) => {
     const ingredients: Ingredient[] = ingredientsStr.split('\n').map(line => {
@@ -112,17 +112,17 @@ export function MealPlanner() {
   };
   
   const handleGenerateShoppingList = () => {
-    const ingredientsToAdd = recipes
+    const ingredientsFromSelectedRecipes = recipes
       .filter(r => selectedRecipeIds.has(r.id))
       .flatMap(r => r.ingredients.map(ing => `${ing.quantity} ${ing.unit} ${ing.name}`.trim()));
-    
+
     setShoppingList(prevList => {
-      const combined = [...prevList, ...ingredientsToAdd];
-      const unique = Array.from(new Set(combined.map(i => i.trim().toLowerCase()).filter(Boolean)));
-      return unique.sort((a, b) => a.localeCompare(b));
+      const combinedList = [...prevList, ...ingredientsFromSelectedRecipes];
+      const uniqueList = Array.from(new Set(combinedList.map(item => item.toLowerCase().trim()).filter(Boolean)));
+      return uniqueList.sort((a, b) => a.localeCompare(b));
     });
 
-    toast({ title: "Shopping list updated!", description: `${ingredientsToAdd.length} ingredients considered.` });
+    toast({ title: "Shopping list updated!", description: `${ingredientsFromSelectedRecipes.length} ingredients considered.` });
     setSelectedRecipeIds(new Set());
   };
 

@@ -105,8 +105,8 @@ export function DiscoverRecipesCard({ onAddRecipe }: DiscoverRecipesCardProps) {
             <Input id="ingredients" name="ingredients" placeholder="e.g., chicken, rice, broccoli" required />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="prompt">Any specific requests?</Label>
-            <Input id="prompt" name="prompt" placeholder="e.g., vegetarian, quick and easy" />
+            <Label htmlFor="prompt">What are you craving?</Label>
+            <Input id="prompt" name="prompt" placeholder="e.g., something spicy, a comforting soup, Italian" />
           </div>
           <SubmitButton />
         </form>

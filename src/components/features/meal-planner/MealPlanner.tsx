@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -15,7 +15,12 @@ export function MealPlanner() {
   const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<string>>(new Set());
   const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
     const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
@@ -89,6 +94,10 @@ export function MealPlanner() {
     setEditingRecipe(recipe);
     setIsFormOpen(true);
   };
+  
+  if (!isClient) {
+    return null;
+  }
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">

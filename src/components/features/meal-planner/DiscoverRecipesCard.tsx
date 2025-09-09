@@ -120,7 +120,7 @@ export function DiscoverRecipesCard({ onAddRecipe }: DiscoverRecipesCardProps) {
                 <Skeleton className="h-10 w-full" />
               </div>
             ) : recommendations && recommendations.recommendations.length > 0 ? (
-               <ScrollArea className="h-60 pr-4">
+               <ScrollArea className="h-96 pr-4">
                 <Accordion type="single" collapsible className="w-full">
                   {recommendations.recommendations.map((rec, i) => (
                     <AccordionItem value={`item-${i}`} key={i}>

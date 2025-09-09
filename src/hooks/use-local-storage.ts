@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Dispatch, SetStateAction, useId } from 'react';
+import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 
 function getStorageValue<T>(key: string, defaultValue: T): T {
   if (typeof window === "undefined") {
@@ -22,12 +22,18 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetState
     setIsClient(true);
   }, []);
 
-  const [storedValue, setStoredValue] = useState<T>(() => {
+  const [storedValue, setStoredValue] = useState<T>(initialValue);
+
+  useEffect(() => {
     if (isClient) {
-      return getStorageValue(key, initialValse);
+      try {
+        setStoredValue(getStorageValue(key, initialValue));
+      } catch (error) {
+        console.error("Error getting localStorage value", error);
+      }
     }
-    return initialValue;
-  });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isClient, key]);
 
   useEffect(() => {
     if (isClient) {
@@ -39,13 +45,6 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetState
     }
   }, [key, storedValue, isClient]);
   
-  useEffect(() => {
-    if (isClient) {
-      setStoredValue(getStorageValue(key, initialValue));
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isClient, key]);
-
   return [storedValue, setStoredValue];
 }
 

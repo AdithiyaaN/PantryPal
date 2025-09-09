@@ -2,6 +2,7 @@
 
 import { extractIngredientsFromUrl } from "@/ai/flows/extract-ingredients-from-url";
 import { categorizeIngredients, CategorizeIngredientsOutput } from "@/ai/flows/categorize-ingredients";
+import { generateRecipeImage, GenerateRecipeImageOutput } from "@/ai/flows/generate-recipe-image";
 
 export async function getIngredientsFromUrlAction(formData: FormData) {
   const url = formData.get("url") as string;
@@ -47,6 +48,23 @@ export async function getCategorizedShoppingListAction(ingredients: string[]): P
     return {
       success: false,
       error: "Failed to categorize shopping list. Please try again.",
+    };
+  }
+}
+
+export async function generateRecipeImageAction(recipeName: string): Promise<{success: boolean, data?: GenerateRecipeImageOutput, error?: string}> {
+  if (!recipeName) {
+    return { success: false, error: "Recipe name is required." };
+  }
+
+  try {
+    const result = await generateRecipeImage({ recipeName });
+    return { success: true, data: result };
+  } catch (error) {
+    console.error(error);
+    return {
+      success: false,
+      error: "Failed to generate recipe image. Please try again.",
     };
   }
 }

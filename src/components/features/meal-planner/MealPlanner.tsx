@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useId } from 'react';
+import { useState, useEffect, useId, useCallback } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -9,7 +9,7 @@ import { ShoppingListCard } from './ShoppingListCard';
 import { RecipeFormDialog } from './RecipeFormDialog';
 import { useToast } from '@/hooks/use-toast';
 import { type CategorizeIngredientsOutput } from '@/ai/flows/categorize-ingredients';
-import { getCategorizedShoppingListAction } from '@/app/actions';
+import { getCategorizedShoppingListAction, generateRecipeImageAction } from '@/app/actions';
 
 export function MealPlanner() {
   const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', []);
@@ -26,6 +26,21 @@ export function MealPlanner() {
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  const handleGenerateImage = useCallback(async (recipeId: string, recipeName: string) => {
+    setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, isGeneratingImage: true } : r));
+    const result = await generateRecipeImageAction(recipeName);
+    if (result.success && result.data) {
+      setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, imageUrl: result.data!.imageUrl, isGeneratingImage: false } : r));
+    } else {
+      setRecipes(prev => prev.map(r => r.id === recipeId ? { ...r, isGeneratingImage: false } : r));
+      toast({
+        variant: "destructive",
+        title: "Image Generation Failed",
+        description: result.error,
+      });
+    }
+  }, [setRecipes, toast]);
 
   useEffect(() => {
     if (shoppingList.length > 0) {
@@ -56,16 +71,23 @@ export function MealPlanner() {
   const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
     const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
     if (editingRecipe) {
-      setRecipes(prev => prev.map(r => (r.id === editingRecipe.id ? { ...r, name, ingredients } : r)));
+      const updatedRecipe = { ...editingRecipe, name, ingredients };
+      setRecipes(prev => prev.map(r => (r.id === editingRecipe.id ? updatedRecipe : r)));
       toast({ title: "Recipe updated!" });
+      // Optional: Regenerate image if name changed
+      if (editingRecipe.name !== name) {
+        handleGenerateImage(editingRecipe.id, name);
+      }
     } else {
       const newRecipe: Recipe = {
         id: `recipe-${uuid}-${Date.now()}`,
         name,
         ingredients,
+        isGeneratingImage: true,
       };
       setRecipes(prev => [...prev, newRecipe]);
       toast({ title: "Recipe added!" });
+      handleGenerateImage(newRecipe.id, newRecipe.name);
     }
     setEditingRecipe(null);
   };
@@ -75,8 +97,10 @@ export function MealPlanner() {
       id: `recipe-${uuid}-${Date.now()}`,
       name,
       ingredients,
+      isGeneratingImage: true,
     };
     setRecipes(prev => [...prev, newRecipe]);
+    handleGenerateImage(newRecipe.id, newRecipe.name);
   };
 
   const handleDeleteRecipe = (id: string) => {

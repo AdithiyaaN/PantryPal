@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useId } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe, type Ingredient } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -54,13 +54,39 @@ export function MealPlanner() {
   }, [shoppingList, handleCategorizeList]);
 
   const handleAddOrUpdateRecipe = (name: string, servings: number, ingredientsStr: string) => {
-    const ingredients: Ingredient[] = ingredientsStr.split('\n').map(line => {
-        const parts = line.trim().split(' ');
-        const quantity = parseFloat(parts[0]) || 1;
-        const unit = !isNaN(parseFloat(parts[0])) ? parts[1] || '' : '';
-        const name = !isNaN(parseFloat(parts[0])) ? parts.slice(2).join(' ') : line.trim();
-        return { name, quantity, unit };
-      }).filter(ing => ing.name !== '');
+    const ingredients: Ingredient[] = ingredientsStr.split('\n').filter(line => line.trim() !== '').map(line => {
+      const parts = line.trim().split(' ');
+      const quantityMatch = parts[0].match(/^[0-9./]+/);
+      let quantity = 1;
+      let unit = '';
+      let ingredientName = line.trim();
+
+      if (quantityMatch) {
+        try {
+          // Handles fractions like 1/2
+          if (quantityMatch[0].includes('/')) {
+            const [num, den] = quantityMatch[0].split('/');
+            quantity = parseInt(num, 10) / parseInt(den, 10);
+          } else {
+            quantity = parseFloat(quantityMatch[0]);
+          }
+          
+          if (parts.length > 1 && isNaN(parseFloat(parts[1]))) {
+             unit = parts[1];
+             ingredientName = parts.slice(2).join(' ');
+          } else {
+             ingredientName = parts.slice(1).join(' ');
+          }
+        } catch (e) {
+            // if parsing fails, fall back to default
+            quantity = 1;
+            unit = '';
+            ingredientName = line.trim();
+        }
+      }
+
+      return { name: ingredientName, quantity, unit };
+    });
 
     if (editingRecipe) {
       const updatedRecipe = { ...editingRecipe, name, servings, ingredients };
@@ -117,8 +143,8 @@ export function MealPlanner() {
       .flatMap(r => r.ingredients.map(ing => `${ing.quantity} ${ing.unit} ${ing.name}`.trim()));
 
     setShoppingList(prevList => {
-      const combinedList = [...prevList, ...ingredientsFromSelectedRecipes];
-      // Use a Map to keep track of unique items, preserving original casing for the first-seen item.
+      const combinedList = [...new Set([...prevList, ...ingredientsFromSelectedRecipes])];
+       // Use a Map to keep track of unique items, preserving original casing for the first-seen item.
       const uniqueMap = new Map();
       combinedList.forEach(item => {
         const lowerCaseItem = item.toLowerCase().trim();

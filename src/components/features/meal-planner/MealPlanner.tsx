@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useId, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import useLocalStorage from '@/hooks/use-local-storage';
 import { type Recipe } from '@/types';
 import { ImportRecipeCard } from './ImportRecipeCard';
@@ -21,7 +21,8 @@ export function MealPlanner() {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isClient, setIsClient] = useState(false);
   const { toast } = useToast();
-  const uuid = useId();
+  
+  const generateUniqueId = () => `recipe-${Date.now()}-${Math.random()}`;
 
   useEffect(() => {
     setIsClient(true);
@@ -42,16 +43,7 @@ export function MealPlanner() {
     }
   }, [setRecipes, toast]);
 
-  useEffect(() => {
-    if (shoppingList.length > 0) {
-      handleCategorizeList(shoppingList);
-    } else {
-      setCategorizedList(null);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [shoppingList]);
-
-  const handleCategorizeList = async (ingredients: string[]) => {
+  const handleCategorizeList = useCallback(async (ingredients: string[]) => {
     setIsCategorizing(true);
     const result = await getCategorizedShoppingListAction(ingredients);
     if (result.success && result.data) {
@@ -66,7 +58,15 @@ export function MealPlanner() {
       setCategorizedList({ categories: [{ category: 'Uncategorized', items: ingredients }] });
     }
     setIsCategorizing(false);
-  };
+  }, [setCategorizedList, toast]);
+
+  useEffect(() => {
+    if (shoppingList.length > 0) {
+      handleCategorizeList(shoppingList);
+    } else {
+      setCategorizedList(null);
+    }
+  }, [shoppingList, setCategorizedList, handleCategorizeList]);
 
   const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
     const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
@@ -80,7 +80,7 @@ export function MealPlanner() {
       }
     } else {
       const newRecipe: Recipe = {
-        id: `recipe-${uuid}-${Date.now()}`,
+        id: generateUniqueId(),
         name,
         ingredients,
         isGeneratingImage: true,
@@ -94,7 +94,7 @@ export function MealPlanner() {
   
   const handleImportedRecipe = (name: string, ingredients: string[]) => {
     const newRecipe: Recipe = {
-      id: `recipe-${uuid}-${Date.now()}`,
+      id: generateUniqueId(),
       name,
       ingredients,
       isGeneratingImage: true,

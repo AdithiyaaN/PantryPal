@@ -1,0 +1,121 @@
+"use client";
+
+import { useState } from 'react';
+import useLocalStorage from '@/hooks/use-local-storage';
+import { type Recipe } from '@/types';
+import { ImportRecipeCard } from './ImportRecipeCard';
+import { RecipeList } from './RecipeList';
+import { ShoppingListCard } from './ShoppingListCard';
+import { RecipeFormDialog } from './RecipeFormDialog';
+import { useToast } from '@/hooks/use-toast';
+
+export function MealPlanner() {
+  const [recipes, setRecipes] = useLocalStorage<Recipe[]>('recipes', []);
+  const [shoppingList, setShoppingList] = useLocalStorage<string[]>('shoppingList', []);
+  const [selectedRecipeIds, setSelectedRecipeIds] = useState<Set<string>>(new Set());
+  const [editingRecipe, setEditingRecipe] = useState<Recipe | null>(null);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { toast } = useToast();
+
+  const handleAddOrUpdateRecipe = (name: string, ingredientsStr: string) => {
+    const ingredients = ingredientsStr.split('\n').map(ing => ing.trim()).filter(ing => ing !== '');
+    if (editingRecipe) {
+      setRecipes(prev => prev.map(r => (r.id === editingRecipe.id ? { ...r, name, ingredients } : r)));
+      toast({ title: "Recipe updated!" });
+    } else {
+      const newRecipe: Recipe = {
+        id: crypto.randomUUID(),
+        name,
+        ingredients,
+      };
+      setRecipes(prev => [...prev, newRecipe]);
+      toast({ title: "Recipe added!" });
+    }
+    setEditingRecipe(null);
+  };
+  
+  const handleImportedRecipe = (name: string, ingredients: string[]) => {
+    const newRecipe: Recipe = {
+      id: crypto.randomUUID(),
+      name,
+      ingredients,
+    };
+    setRecipes(prev => [...prev, newRecipe]);
+  };
+
+  const handleDeleteRecipe = (id: string) => {
+    setRecipes(prev => prev.filter(r => r.id !== id));
+    setSelectedRecipeIds(prev => {
+      const newSet = new Set(prev);
+      newSet.delete(id);
+      return newSet;
+    });
+    toast({ title: "Recipe deleted.", variant: 'destructive' });
+  };
+  
+  const handleToggleRecipeSelection = (id: string) => {
+    setSelectedRecipeIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
+  };
+  
+  const handleGenerateShoppingList = () => {
+    const ingredientsToAdd = recipes
+      .filter(r => selectedRecipeIds.has(r.id))
+      .flatMap(r => r.ingredients);
+    
+    setShoppingList(prevList => {
+      const combined = [...prevList, ...ingredientsToAdd];
+      const unique = Array.from(new Set(combined.map(i => i.trim().toLowerCase()).filter(Boolean)));
+      return unique.sort((a, b) => a.localeCompare(b));
+    });
+
+    toast({ title: "Shopping list updated!", description: `${ingredientsToAdd.length} ingredients considered.` });
+    setSelectedRecipeIds(new Set());
+  };
+
+  const handleClearShoppingList = () => {
+    setShoppingList([]);
+    toast({ title: "Shopping list cleared." });
+  };
+
+  const handleOpenForm = (recipe: Recipe | null) => {
+    setEditingRecipe(recipe);
+    setIsFormOpen(true);
+  };
+
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
+        <div className="lg:col-span-2 space-y-8">
+          <ImportRecipeCard onRecipeImported={handleImportedRecipe} />
+          <RecipeList
+            recipes={recipes}
+            selectedRecipeIds={selectedRecipeIds}
+            onToggleSelection={handleToggleRecipeSelection}
+            onEdit={(recipe) => handleOpenForm(recipe)}
+            onDelete={handleDeleteRecipe}
+            onAddNew={() => handleOpenForm(null)}
+            onGenerate={handleGenerateShoppingList}
+          />
+        </div>
+        <div className="lg:col-span-1 space-y-8">
+          <ShoppingListCard list={shoppingList} onClear={handleClearShoppingList} />
+        </div>
+      </div>
+      <RecipeFormDialog
+        key={editingRecipe?.id ?? 'new'}
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleAddOrUpdateRecipe}
+        recipe={editingRecipe}
+      />
+    </div>
+  );
+}
